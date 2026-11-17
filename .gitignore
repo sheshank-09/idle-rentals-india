@@ -1,0 +1,6 @@
+.ssh/
+.termux/
+storage/
+*.zip
+node_modules/
+android/
