@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Idle Rentals India</title>
+<style>
+:root {
+  --ink: #1E2A32; --teal: #1F6F6B; --sand: #F3EEE4; --clay: #C8643B; --line: #D8D0C0;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Noto Sans", "Noto Sans Devanagari", "Noto Sans Tamil", "Noto Sans Telugu", "Noto Sans Bengali", sans-serif; font-size: 17px; line-height: 1.5; color: var(--ink); background: var(--sand); }
+header { background: var(--ink); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+header h1 { font-family: Georgia, serif; font-size: 20px; margin: 0; }
+header select { font-size: 15px; padding: 6px; border-radius: 6px; border: 0; }
+main { max-width: 640px; margin: 0 auto; padding: 16px 16px 96px; }
+nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: var(--ink); padding-bottom: env(safe-area-inset-bottom, 0px); }
+nav button { flex: 1; min-height: 60px; border: 0; background: transparent; color: #cfd8dc; font-size: 15px; }
+nav button.on { background: var(--teal); color: #fff; font-weight: bold; }
+h2 { font-family: Georgia, serif; font-size: 22px; margin: 4px 0 8px; }
+.hint { color: #55626b; margin: 0 0 14px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+label { display: block; font-weight: bold; margin: 10px 0 4px; }
+input, select, textarea { width: 100%; font-size: 18px; padding: 12px; border: 2px solid #b9b09c; border-radius: 8px; background: #fff; color: var(--ink); }
+button.go { width: 100%; min-height: 56px; margin-top: 14px; border: 0; border-radius: 10px; background: var(--teal); color: #fff; font-size: 18px; font-weight: bold; }
+button.small { min-height: 44px; padding: 8px 12px; border: 2px solid var(--teal); background: #fff; color: var(--teal); border-radius: 8px; font-size: 15px; font-weight: bold; text-decoration: none; display: inline-block; }
+button.danger { border-color: var(--clay); color: var(--clay); }
+button:focus, input:focus, select:focus, textarea:focus, nav button:focus { outline: 3px solid var(--clay); outline-offset: 2px; }
+.listing { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.listing h3 { margin: 0 0 4px; font-size: 19px; }
+.meta { color: #55626b; font-size: 15px; }
+.price { font-size: 20px; font-weight: bold; color: var(--teal); margin: 6px 0; }
+.tag { display: inline-block; font-size: 14px; padding: 2px 10px; border-radius: 20px; background: var(--sand); margin-right: 6px; }
+.tag.rented { background: #F6D9CB; color: var(--clay); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.empty { text-align: center; color: #55626b; padding: 24px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="app-title">Idle Rentals India</h1>
+  <select id="lang" aria-label="Language" onchange="setLang(this.value)">
+    <option value="en">English</option>
+    <option value="hi">हिन्दी</option>
+    <option value="ta">தமிழ்</option>
+    <option value="te">తెలుగు</option>
+    <option value="bn">বাংলা</option>
+    <option value="mr">मराठी</option>
+  </select>
+</header>
+<main>
+
+<section id="s-browse">
+  <h2 data-i="browseTitle"></h2>
+  <p class="hint" data-i="browseHint"></p>
+  <div class="card">
+    <label for="search" data-i="search"></label>
+    <input id="search" type="text" oninput="renderBrowse()">
+    <label for="cat-filter" data-i="category"></label>
+    <select id="cat-filter" onchange="renderBrowse()"></select>
+    <label for="state-filter" data-i="state"></label>
+    <select id="state-filter" onchange="renderBrowse()"></select>
+  </div>
+  <div id="browse-list"></div>
+</section>
+
+<section id="s-add" hidden>
+  <h2 data-i="addTitle"></h2>
+  <p class="hint" data-i="addHint"></p>
+  <div class="card">
+    <label for="i-name" data-i="itemName"></label>
+    <input id="i-name" type="text">
+    <label for="i-cat" data-i="category"></label>
+    <select id="i-cat"></select>
+    <label for="i-desc" data-i="details"></label>
+    <textarea id="i-desc"></textarea>
+    <label for="i-price" data-i="pricePerDay"></label>
+    <input id="i-price" type="number" min="0" step="1" inputmode="numeric">
+    <label for="i-deposit" data-i="deposit"></label>
+    <input id="i-deposit" type="number" min="0" step="1" inputmode="numeric">
+    <label for="i-state" data-i="state"></label>
+    <select id="i-state" onchange="fillDistricts()"></select>
+    <label for="i-district" data-i="district"></label>
+    <select id="i-district" onchange="toggleManual()"></select>
+    <div id="manual-box" hidden>
+    <label for="i-manual" data-i="manualPlace"></label>
+    <input id="i-manual" type="text">
+    </div>
+    <label for="i-contact" data-i="contact"></label>
+    <input id="i-contact" type="tel" inputmode="tel">
+    <button class="go" onclick="addItem()" data-i="listBtn"></button>
+  </div>
+</section>
+
+<section id="s-mine" hidden>
+  <h2 data-i="mineTitle"></h2>
+  <p class="hint" data-i="mineHint"></p>
+  <div id="mine-list"></div>
+</section>
+
+</main>
+<nav>
+  <button class="on" data-tab="s-browse" onclick="show('s-browse', this)" data-i="navBrowse"></button>
+  <button data-tab="s-add" onclick="show('s-add', this)" data-i="navAdd"></button>
+  <button data-tab="s-mine" onclick="show('s-mine', this)" data-i="navMine"></button>
+</nav>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// Interface text. Hindi, Tamil, Telugu, Bengali and Marathi wording is a starting point
+// and should be checked by native speakers before public release.
+const T = {
+  en: { appTitle:"Idle Rentals India", browseTitle:"Rent something nearby", browseHint:"Borrow items people are not using right now.", search:"Search", category:"Category", state:"State", addTitle:"List an item", addHint:"Rent out something you are not using.", itemName:"Item name", details:"Details and condition", pricePerDay:"Price per day (₹)", deposit:"Deposit (₹, optional)", district:"District", manualPlace:"Type your district", contact:"Phone number", listBtn:"List item", mineTitle:"My listings", mineHint:"Mark rented when lent out, and available when it returns.", navBrowse:"Browse", navAdd:"List item", navMine:"My listings", contactOwner:"Call owner", available:"Available", rented:"Currently rented", markRented:"Mark rented", markAvailable:"Mark available", remove:"Remove", perDay:"per day", depositLbl:"deposit", allCats:"All categories", allStates:"All states", none:"No items match. Try another word.", noMine:"No listings yet.", needFields:"Enter item name, price, and phone number.", listed:"Item listed.", confirmRemove:"Remove this listing?" },
+  hi: { appTitle:"आइडल रेंटल्स इंडिया", browseTitle:"पास में कुछ किराए पर लें", browseHint:"जो चीज़ें लोग अभी इस्तेमाल नहीं कर रहे, उन्हें किराए पर लें।", search:"खोजें", category:"श्रेणी", state:"राज्य", addTitle:"सामान सूची में डालें", addHint:"जो चीज़ आप इस्तेमाल नहीं कर रहे, उसे किराए पर दें।", itemName:"सामान का नाम", details:"विवरण और हालत", pricePerDay:"प्रति दिन कीमत (₹)", deposit:"जमा राशि (₹, वैकल्पिक)", district:"ज़िला या शहर", contact:"फ़ोन नंबर", listBtn:"सूची में डालें", mineTitle:"मेरी सूची", mineHint:"किराए पर देने पर 'किराए पर' और लौटने पर 'उपलब्ध' चिह्नित करें।", navBrowse:"देखें", navAdd:"जोड़ें", navMine:"मेरी सूची", contactOwner:"मालिक को कॉल करें", available:"उपलब्ध", rented:"अभी किराए पर", markRented:"किराए पर चिह्नित करें", markAvailable:"उपलब्ध चिह्नित करें", remove:"हटाएं", perDay:"प्रति दिन", depositLbl:"जमा", allCats:"सभी श्रेणियां", allStates:"सभी राज्य", none:"कोई सामान नहीं मिला। दूसरा शब्द आज़माएं।", noMine:"अभी कोई सूची नहीं है।", needFields:"सामान का नाम, कीमत और फ़ोन नंबर डालें।", listed:"सामान सूची में जुड़ गया।", confirmRemove:"यह सूची हटाएं?" },
+  ta: { appTitle:"ஐடில் ரென்டல்ஸ் இந்தியா", browseTitle:"அருகில் வாடகைக்கு எடுங்கள்", browseHint:"மக்கள் இப்போது பயன்படுத்தாத பொருட்களை வாடகைக்கு எடுங்கள்.", search:"தேடு", category:"வகை", state:"மாநிலம்", addTitle:"பொருளைப் பட்டியலிடுங்கள்", addHint:"நீங்கள் பயன்படுத்தாத பொருளை வாடகைக்கு விடுங்கள்.", itemName:"பொருளின் பெயர்", details:"விவரங்கள் மற்றும் நிலை", pricePerDay:"ஒரு நாள் விலை (₹)", deposit:"முன்பணம் (₹, விருப்பம்)", district:"மாவட்டம் அல்லது ஊர்", contact:"தொலைபேசி எண்", listBtn:"பட்டியலிடு", mineTitle:"என் பட்டியல்", mineHint:"வாடகைக்கு விட்டால் 'வாடகையில்' எனக் குறிக்கவும்.", navBrowse:"பார்", navAdd:"சேர்", navMine:"என் பட்டியல்", contactOwner:"உரிமையாளரை அழை", available:"கிடைக்கும்", rented:"தற்போது வாடகையில்", markRented:"வாடகையில் எனக் குறி", markAvailable:"கிடைக்கும் எனக் குறி", remove:"நீக்கு", perDay:"ஒரு நாளுக்கு", depositLbl:"முன்பணம்", allCats:"அனைத்து வகைகள்", allStates:"அனைத்து மாநிலங்கள்", none:"பொருட்கள் இல்லை. வேறு சொல்லை முயற்சிக்கவும்.", noMine:"இன்னும் பட்டியல் இல்லை.", needFields:"பொருளின் பெயர், விலை, தொலைபேசி எண் உள்ளிடவும்.", listed:"பொருள் பட்டியலிடப்பட்டது.", confirmRemove:"இந்தப் பட்டியலை நீக்கவா?" },
+  te: { appTitle:"ఐడిల్ రెంటల్స్ ఇండియా", browseTitle:"దగ్గరలో అద్దెకు తీసుకోండి", browseHint:"ప్రజలు ఇప్పుడు ఉపయోగించని వస్తువులను అద్దెకు తీసుకోండి.", search:"వెతకండి", category:"వర్గం", state:"రాష్ట్రం", addTitle:"వస్తువును జాబితా చేయండి", addHint:"మీరు ఉపయోగించని వస్తువును అద్దెకు ఇవ్వండి.", itemName:"వస్తువు పేరు", details:"వివరాలు మరియు స్థితి", pricePerDay:"రోజుకు ధర (₹)", deposit:"డిపాజిట్ (₹, ఐచ్ఛికం)", district:"జిల్లా లేదా ఊరు", contact:"ఫోన్ నంబర్", listBtn:"జాబితా చేయి", mineTitle:"నా జాబితా", mineHint:"అద్దెకు ఇచ్చినప్పుడు 'అద్దెకు' అని గుర్తించండి.", navBrowse:"చూడు", navAdd:"జోడించు", navMine:"నా జాబితా", contactOwner:"యజమానిని కాల్ చేయండి", available:"అందుబాటులో ఉంది", rented:"ప్రస్తుతం అద్దెకు", markRented:"అద్దెకు అని గుర్తించు", markAvailable:"అందుబాటులో అని గుర్తించు", remove:"తీసివేయి", perDay:"రోజుకు", depositLbl:"డిపాజిట్", allCats:"అన్ని వర్గాలు", allStates:"అన్ని రాష్ట్రాలు", none:"వస్తువులు లేవు. వేరే పదం ప్రయత్నించండి.", noMine:"ఇంకా జాబితాలు లేవు.", needFields:"వస్తువు పేరు, ధర, ఫోన్ నంబర్ నమోదు చేయండి.", listed:"వస్తువు జాబితా చేయబడింది.", confirmRemove:"ఈ జాబితాను తీసివేయాలా?" },
+  bn: { appTitle:"আইডল রেন্টালস ইন্ডিয়া", browseTitle:"কাছাকাছি ভাড়া নিন", browseHint:"মানুষ এখন ব্যবহার করছে না এমন জিনিস ভাড়া নিন।", search:"খুঁজুন", category:"বিভাগ", state:"রাজ্য", addTitle:"জিনিস তালিকাভুক্ত করুন", addHint:"যে জিনিস আপনি ব্যবহার করছেন না, তা ভাড়া দিন।", itemName:"জিনিসের নাম", details:"বিবরণ ও অবস্থা", pricePerDay:"প্রতিদিনের দাম (₹)", deposit:"জামানত (₹, ঐচ্ছিক)", district:"জেলা বা শহর", contact:"ফোন নম্বর", listBtn:"তালিকাভুক্ত করুন", mineTitle:"আমার তালিকা", mineHint:"ভাড়া দিলে 'ভাড়ায়' চিহ্নিত করুন।", navBrowse:"দেখুন", navAdd:"যোগ করুন", navMine:"আমার তালিকা", contactOwner:"মালিককে কল করুন", available:"উপলব্ধ", rented:"এখন ভাড়ায়", markRented:"ভাড়ায় চিহ্নিত করুন", markAvailable:"উপলব্ধ চিহ্নিত করুন", remove:"সরান", perDay:"প্রতিদিন", depositLbl:"জামানত", allCats:"সব বিভাগ", allStates:"সব রাজ্য", none:"কোনো জিনিস মেলেনি। অন্য শব্দ চেষ্টা করুন।", noMine:"এখনও কোনো তালিকা নেই।", needFields:"জিনিসের নাম, দাম ও ফোন নম্বর লিখুন।", listed:"জিনিস তালিকাভুক্ত হয়েছে।", confirmRemove:"এই তালিকা সরাবেন?" },
+  mr: { appTitle:"आयडल रेंटल्स इंडिया", browseTitle:"जवळ काहीतरी भाड्याने घ्या", browseHint:"लोक सध्या वापरत नसलेल्या वस्तू भाड्याने घ्या.", search:"शोधा", category:"प्रकार", state:"राज्य", addTitle:"वस्तू नोंदवा", addHint:"तुम्ही वापरत नसलेली वस्तू भाड्याने द्या.", itemName:"वस्तूचे नाव", details:"तपशील आणि स्थिती", pricePerDay:"दिवसाचा दर (₹)", deposit:"अनामत (₹, ऐच्छिक)", district:"जिल्हा किंवा गाव", contact:"फोन नंबर", listBtn:"नोंदवा", mineTitle:"माझ्या नोंदी", mineHint:"भाड्याने दिल्यावर 'भाड्याने' चिन्हांकित करा.", navBrowse:"पहा", navAdd:"नोंदवा", navMine:"माझ्या नोंदी", contactOwner:"मालकाला कॉल करा", available:"उपलब्ध", rented:"सध्या भाड्याने", markRented:"भाड्याने चिन्हांकित करा", markAvailable:"उपलब्ध चिन्हांकित करा", remove:"काढा", perDay:"दिवसाला", depositLbl:"अनामत", allCats:"सर्व प्रकार", allStates:"सर्व राज्ये", none:"वस्तू सापडल्या नाहीत. दुसरा शब्द वापरा.", noMine:"अजून नोंदी नाहीत.", needFields:"वस्तूचे नाव, दर आणि फोन नंबर भरा.", listed:"वस्तू नोंदवली गेली.", confirmRemove:"ही नोंद काढायची?" }
+};
+
+// Categories and states (all states and union territories)
+const CATS = {
+  Tools: { en:"Tools", hi:"औज़ार", ta:"கருவிகள்", te:"పనిముట్లు", bn:"যন্ত্রপাতি", mr:"साधने" },
+  Camping: { en:"Camping", hi:"कैंपिंग", ta:"முகாம்", te:"క్యాంపింగ్", bn:"ক্যাম্পিং", mr:"कॅम्पिंग" },
+  Electronics: { en:"Electronics", hi:"इलेक्ट्रॉनिक्स", ta:"மின்னணுவியல்", te:"ఎలక్ట్రానిక్స్", bn:"ইলেকট্রনিক্স", mr:"इलेक्ट्रॉनिक्स" },
+  Vehicles: { en:"Vehicles", hi:"वाहन", ta:"வாகனங்கள்", te:"వాహనాలు", bn:"যানবাহন", mr:"वाहने" },
+  Furniture: { en:"Furniture", hi:"फ़र्नीचर", ta:"மரச்சாமான்கள்", te:"ఫర్నిచర్", bn:"আসবাবপত্র", mr:"फर्निचर" },
+  Party: { en:"Party and events", hi:"पार्टी और आयोजन", ta:"விழா பொருட்கள்", te:"పార్టీ & ఈవెంట్లు", bn:"পার্টি ও অনুষ্ঠান", mr:"पार्टी व कार्यक्रम" },
+  Other: { en:"Other", hi:"अन्य", ta:"மற்றவை", te:"ఇతరాలు", bn:"অন্যান্য", mr:"इतर" }
+};
+const STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"];
+
+// Districts by state. 'Other' allows typing.
+const DISTRICTS = {
+  "Andhra Pradesh": ["Alluri Sitharama Raju", "Anakapalli", "Anantapur", "Annamayya", "Bapatla", "Chittoor", "East Godavari", "Eluru", "Guntur", "Kakinada", "Konaseema", "Krishna", "Kurnool", "Manyam", "Nandyal", "NTR", "Palnadu", "Prakasam", "Sri Potti Sriramulu Nellore", "Sri Sathya Sai", "Srikakulam", "Tirupati", "Visakhapatnam", "Vizianagaram", "West Godavari", "YSR Kadapa"],
+  "Arunachal Pradesh": ["Anjaw", "Changlang", "Dibang Valley", "East Kameng", "East Siang", "Kamle", "Kra Daadi", "Kurung Kumey", "Lepa Rada", "Lohit", "Longding", "Lower Dibang Valley", "Lower Siang", "Lower Subansiri", "Namsai", "Pakke Kessang", "Papum Pare", "Shi Yomi", "Siang", "Tawang", "Tirap", "Upper Siang", "Upper Subansiri", "West Kameng", "West Siang", "Keyi Panyor"],
+  "Assam": ["Bajali", "Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar", "Charaideo", "Chirang", "Darrang", "Dhemaji", "Dhubri", "Dibrugarh", "Dima Hasao", "Goalpara", "Golaghat", "Hailakandi", "Hojai", "Jorhat", "Kamrup", "Kamrup Metropolitan", "Karbi Anglong", "Karimganj", "Kokrajhar", "Lakhimpur", "Majuli", "Morigaon", "Nagaon", "Nalbari", "Sivasagar", "Sonitpur", "South Salmara-Mankachar", "Tamulpur", "Tinsukia", "Udalguri", "West Karbi Anglong"],
+  "Bihar": ["Araria", "Arwal", "Aurangabad", "Banka", "Begusarai", "Bhagalpur", "Bhojpur", "Buxar", "Darbhanga", "East Champaran", "Gaya", "Gopalganj", "Jamui", "Jehanabad", "Kaimur", "Katihar", "Khagaria", "Kishanganj", "Lakhisarai", "Madhepura", "Madhubani", "Munger", "Muzaffarpur", "Nalanda", "Nawada", "Patna", "Purnia", "Rohtas", "Saharsa", "Samastipur", "Saran", "Sheikhpura", "Sheohar", "Sitamarhi", "Siwan", "Supaul", "Vaishali", "West Champaran"],
+  "Chhattisgarh": ["Balod", "Baloda Bazar", "Balrampur", "Bastar", "Bemetara", "Bijapur", "Bilaspur", "Dantewada", "Dhamtari", "Durg", "Gariaband", "Gaurela-Pendra-Marwahi", "Janjgir-Champa", "Jashpur", "Kabirdham", "Kanker", "Khairagarh-Chhuikhadan-Gandai", "Kondagaon", "Korba", "Korea", "Mahasamund", "Manendragarh-Chirmiri-Bharatpur", "Mohla-Manpur-Ambagarh Chowki", "Mungeli", "Narayanpur", "Raigarh", "Raipur", "Rajnandgaon", "Sakti", "Sarangarh-Bilaigarh", "Sukma", "Surajpur", "Surguja"],
+  "Goa": ["North Goa", "South Goa"],
+  "Gujarat": ["Ahmedabad", "Amreli", "Anand", "Aravalli", "Banaskantha", "Bharuch", "Bhavnagar", "Botad", "Chhota Udaipur", "Dahod", "Dang", "Devbhoomi Dwarka", "Gandhinagar", "Gir Somnath", "Jamnagar", "Junagadh", "Kheda", "Kutch", "Mahisagar", "Mehsana", "Morbi", "Narmada", "Navsari", "Panchmahal", "Patan", "Porbandar", "Rajkot", "Sabarkantha", "Surat", "Surendranagar", "Tapi", "Vadodara", "Valsad"],
+  "Haryana": ["Ambala", "Bhiwani", "Charkhi Dadri", "Faridabad", "Fatehabad", "Gurugram", "Hisar", "Jhajjar", "Jind", "Kaithal", "Karnal", "Kurukshetra", "Mahendragarh", "Nuh", "Palwal", "Panchkula", "Panipat", "Rewari", "Rohtak", "Sirsa", "Sonipat", "Yamunanagar"],
+  "Himachal Pradesh": ["Bilaspur", "Chamba", "Hamirpur", "Kangra", "Kinnaur", "Kullu", "Lahaul and Spiti", "Mandi", "Shimla", "Sirmaur", "Solan", "Una"],
+  "Jharkhand": ["Bokaro", "Chatra", "Deoghar", "Dhanbad", "Dumka", "East Singhbhum", "Garhwa", "Giridih", "Godda", "Gumla", "Hazaribagh", "Jamtara", "Khunti", "Koderma", "Latehar", "Lohardaga", "Pakur", "Palamu", "Ramgarh", "Ranchi", "Sahebganj", "Seraikela Kharsawan", "Simdega", "West Singhbhum"],
+  "Karnataka": ["Bagalkot", "Ballari", "Belagavi", "Bengaluru Rural", "Bengaluru Urban", "Bidar", "Chamarajanagar", "Chikballapur", "Chikkamagaluru", "Chitradurga", "Dakshina Kannada", "Davanagere", "Dharwad", "Gadag", "Hassan", "Haveri", "Kalaburagi", "Kodagu", "Kolar", "Koppal", "Mandya", "Mysuru", "Raichur", "Ramanagara", "Shivamogga", "Tumakuru", "Udupi", "Uttara Kannada", "Vijayanagara", "Vijayapura", "Yadgir"],
+  "Kerala": ["Alappuzha", "Ernakulam", "Idukki", "Kannur", "Kasaragod", "Kollam", "Kottayam", "Kozhikode", "Malappuram", "Palakkad", "Pathanamthitta", "Thiruvananthapuram", "Thrissur", "Wayanad"],
+  "Madhya Pradesh": ["Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal", "Burhanpur", "Chhatarpur", "Chhindwara", "Damoh", "Datia", "Dewas", "Dhar", "Dindori", "Guna", "Gwalior", "Harda", "Hoshangabad", "Indore", "Jabalpur", "Jhabua", "Katni", "Khandwa", "Khargone", "Mandla", "Mandsaur", "Morena", "Narsinghpur", "Neemuch", "Niwari", "Panna", "Raisen", "Rajgarh", "Ratlam", "Rewa", "Sagar", "Satna", "Sehore", "Seoni", "Shahdol", "Shajapur", "Sheopur", "Shivpuri", "Sidhi", "Singrauli", "Tikamgarh", "Ujjain", "Umaria", "Vidisha"],
+  "Maharashtra": ["Ahilyanagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Beed", "Bhandara", "Buldhana", "Chandrapur", "Dharashiv", "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik", "Palghar", "Parbhani", "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"],
+  "Manipur": ["Bishnupur", "Chandel", "Churachandpur", "Imphal East", "Imphal West", "Jiribam", "Kakching", "Kamjong", "Kangpokpi", "Noney", "Pherzawl", "Senapati", "Tamenglong", "Tengnoupal", "Thoubal", "Ukhrul"],
+  "Meghalaya": ["East Garo Hills", "East Jaintia Hills", "East Khasi Hills", "Eastern West Khasi Hills", "North Garo Hills", "Ri Bhoi", "South Garo Hills", "South West Garo Hills", "South West Khasi Hills", "West Garo Hills", "West Jaintia Hills", "West Khasi Hills"],
+  "Mizoram": ["Aizawl", "Champhai", "Hnahthial", "Khawzawl", "Kolasib", "Lawngtlai", "Lunglei", "Mamit", "Saitual", "Serchhip", "Siaha"],
+  "Nagaland": ["Chumoukedima", "Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon", "Niuland", "Noklak", "Peren", "Phek", "Shamator", "Tseminyu", "Tuensang", "Wokha", "Zunheboto"],
+  "Odisha": ["Angul", "Balangir", "Balasore", "Bargarh", "Bhadrak", "Boudh", "Cuttack", "Deogarh", "Dhenkanal", "Gajapati", "Ganjam", "Jagatsinghpur", "Jajpur", "Jharsuguda", "Kalahandi", "Kandhamal", "Kendrapara", "Kendujhar", "Khordha", "Koraput", "Malkangiri", "Mayurbhanj", "Nabarangpur", "Nayagarh", "Nuapada", "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundargarh"],
+  "Punjab": ["Amritsar", "Barnala", "Bathinda", "Faridkot", "Fatehgarh Sahib", "Fazilka", "Ferozepur", "Gurdaspur", "Hoshiarpur", "Jalandhar", "Kapurthala", "Ludhiana", "Malerkotla", "Mansa", "Moga", "Mohali", "Muktsar", "Pathankot", "Patiala", "Rupnagar", "Sangrur", "Shahid Bhagat Singh Nagar", "Tarn Taran"],
+  "Rajasthan": ["Ajmer", "Alwar", "Anupgarh", "Balotra", "Banswara", "Baran", "Barmer", "Beawar", "Bharatpur", "Bhilwara", "Bikaner", "Bundi", "Chittorgarh", "Churu", "Dausa", "Deeg", "Dholpur", "Didwana-Kuchaman", "Dungarpur", "Gangapur City", "Hanumangarh", "Jaipur", "Jaisalmer", "Jalore", "Jhalawar", "Jhunjhunu", "Jodhpur", "Karauli", "Kekri", "Khairthal-Tijara", "Kota", "Kotputli-Behror", "Nagaur", "Neem Ka Thana", "Pali", "Phalodi", "Pratapgarh", "Rajsamand", "Salumbar", "Sanchore", "Sawai Madhopur", "Shahpura", "Sikar", "Sirohi", "Sri Ganganagar", "Tonk", "Udaipur"],
+  "Sikkim": ["East Sikkim", "North Sikkim", "Pakyong", "Soreng", "South Sikkim", "West Sikkim"],
+  "Tamil Nadu": ["Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"],
+  "Telangana": ["Adilabad", "Bhadradri Kothagudem", "Hanumakonda", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhupalpally", "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam", "Komaram Bheem Asifabad", "Mahabubabad", "Mahabubnagar", "Mancherial", "Medak", "Medchal-Malkajgiri", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Rangareddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", "Wanaparthy", "Warangal", "Yadadri Bhuvanagiri"],
+  "Tripura": ["Dhalai", "Gomati", "Khowai", "North Tripura", "Sepahijala", "South Tripura", "Unakoti", "West Tripura"],
+  "Uttar Pradesh": ["Agra", "Aligarh", "Ambedkar Nagar", "Amethi", "Amroha", "Auraiya", "Ayodhya", "Azamgarh", "Baghpat", "Bahraich", "Ballia", "Balrampur", "Banda", "Barabanki", "Bareilly", "Basti", "Bhadohi", "Bijnor", "Budaun", "Bulandshahr", "Chandauli", "Chitrakoot", "Deoria", "Etah", "Etawah", "Farrukhabad", "Fatehpur", "Firozabad", "Gautam Buddha Nagar", "Ghaziabad", "Ghazipur", "Gonda", "Gorakhpur", "Hamirpur", "Hapur", "Hardoi", "Hathras", "Jalaun", "Jaunpur", "Jhansi", "Kannauj", "Kanpur Dehat", "Kanpur Nagar", "Kasganj", "Kaushambi", "Kushinagar", "Lakhimpur Kheri", "Lalitpur", "Lucknow", "Maharajganj", "Mahoba", "Mainpuri", "Mathura", "Mau", "Meerut", "Mirzapur", "Moradabad", "Muzaffarnagar", "Pilibhit", "Pratapgarh", "Prayagraj", "Raebareli", "Rampur", "Saharanpur", "Sambhal", "Sant Kabir Nagar", "Shahjahanpur", "Shamli", "Shravasti", "Siddharthnagar", "Sitapur", "Sonbhadra", "Sultanpur", "Unnao", "Varanasi"],
+  "Uttarakhand": ["Almora", "Bageshwar", "Chamoli", "Champawat", "Dehradun", "Haridwar", "Nainital", "Pauri Garhwal", "Pithoragarh", "Rudraprayag", "Tehri Garhwal", "Udham Singh Nagar", "Uttarkashi"],
+  "West Bengal": ["Alipurduar", "Bankura", "Birbhum", "Cooch Behar", "Dakshin Dinajpur", "Darjeeling", "Hooghly", "Howrah", "Jalpaiguri", "Jhargram", "Kalimpong", "Kolkata", "Malda", "Murshidabad", "Nadia", "North 24 Parganas", "Paschim Bardhaman", "Paschim Medinipur", "Purba Bardhaman", "Purba Medinipur", "Purulia", "South 24 Parganas", "Uttar Dinajpur"],
+  "Andaman and Nicobar Islands": ["Nicobar", "North and Middle Andaman", "South Andaman"],
+  "Chandigarh": ["Chandigarh"],
+  "Dadra and Nagar Haveli and Daman and Diu": ["Dadra and Nagar Haveli", "Daman", "Diu"],
+  "Delhi": ["Central Delhi", "East Delhi", "New Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi"],
+  "Jammu and Kashmir": ["Anantnag", "Bandipora", "Baramulla", "Budgam", "Doda", "Ganderbal", "Jammu", "Kathua", "Kishtwar", "Kulgam", "Kupwara", "Poonch", "Pulwama", "Rajouri", "Ramban", "Reasi", "Samba", "Shopian", "Srinagar", "Udhampur"],
+  "Ladakh": ["Kargil", "Leh"],
+  "Lakshadweep": ["Lakshadweep"],
+  "Puducherry": ["Karaikal", "Mahe", "Puducherry", "Yanam"]
+};
+const TALUKS = {
+  "Bagalkot": ["Badami", "Bagalkot", "Bilgi", "Hungund", "Ilkal", "Jamkhandi", "Mudhol", "Rabkavi Banhatti", "Terdal"],
+  "Belagavi": ["Athani", "Bailhongal", "Belagavi", "Chikkodi", "Gokak", "Hukkeri", "Kagwad", "Khanapur", "Kittur", "Mudalagi", "Nippani", "Ramdurg", "Raibag", "Savadatti"],
+  "Bidar": ["Aurad", "Basavakalyan", "Bhalki", "Bidar", "Chitguppa", "Humnabad"],
+  "Bengaluru Urban": ["Anekal", "Bengaluru East", "Bengaluru North", "Bengaluru South"],
+  "Dharwad": ["Alnavar", "Dharwad", "Hubballi", "Kundgol", "Navalgund"],
+  "Vijayapura": ["Babaleshwar", "Basavana Bagevadi", "Indi", "Muddebihal", "Sindagi", "Vijayapura"]
+};
+function fillDistricts() {
+  const st = document.getElementById('i-state').value;
+  document.getElementById('i-district').innerHTML = [...new Set(DISTRICTS[st] || [])].concat(['Other'])
+    .map(d => `<option>${esc(d)}</option>`).join('');
+  toggleManual();
+}
+function toggleManual() {
+  const d = document.getElementById('i-district').value;
+  document.getElementById('manual-box').hidden = d !== 'Other';
+}
+function placeOf() {
+  const d = document.getElementById('i-district').value;
+  return d === 'Other' ? (document.getElementById('i-manual').value.trim() || '-') : d;
+}
+
+let lang = 'en';
+let items = [];
+let myId = '';
+let fdb = null;
+let loading = true;
+
+// PASTE YOUR FIREBASE WEB CONFIG HERE (from Firebase console > Project settings > Your apps)
+const firebaseConfig = {
+  apiKey: "AIzaSyANu3wBWMy0sfFs1SaeksHZVHFyTgcSpX4",
+  authDomain: "idle-rentals-india.firebaseapp.com",
+  projectId: "idle-rentals-india",
+  storageBucket: "idle-rentals-india.firebasestorage.app",
+  messagingSenderId: "1069148022851",
+  appId: "1:1069148022851:web:e4855551214086df0f4cf6"
+};
+
+const t = k => (T[lang] && T[lang][k]) || T.en[k];
+const catLabel = c => (CATS[c] && (CATS[c][lang] || CATS[c].en)) || c;
+const rupees = n => '₹' + Number(n).toLocaleString('en-IN');
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function setLang(code) {
+  lang = code;
+  document.documentElement.lang = code;
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const k = el.getAttribute('data-i');
+    if (el.tagName === 'INPUT') el.placeholder = t(k); else el.textContent = t(k);
+  });
+  document.getElementById('app-title').textContent = t('appTitle');
+  document.title = t('appTitle');
+  fillSelects();
+  renderBrowse();
+  renderMine();
+}
+function fillSelects() {
+  const catOpts = Object.keys(CATS).map(c => `<option value="${c}">${esc(catLabel(c))}</option>`).join('');
+  const stateOpts = STATES.map(s => `<option>${esc(s)}</option>`).join('');
+  const sel = document.getElementById('cat-filter').value;
+  const ss = document.getElementById('state-filter').value;
+  document.getElementById('cat-filter').innerHTML = `<option value="">${t('allCats')}</option>` + catOpts;
+  document.getElementById('state-filter').innerHTML = `<option value="">${t('allStates')}</option>` + stateOpts;
+  document.getElementById('cat-filter').value = sel;
+  document.getElementById('state-filter').value = ss;
+  document.getElementById('i-cat').innerHTML = catOpts;
+  document.getElementById('i-state').innerHTML = stateOpts;
+  fillDistricts();
+}
+function show(id, btn) {
+  document.querySelectorAll('main section').forEach(s => s.hidden = s.id !== id);
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b === btn));
+  if (id === 's-mine') renderMine();
+  window.scrollTo(0, 0);
+}
+function card(it, controls) {
+  const tag = it.status === 'rented' ? 'tag rented' : 'tag';
+  const label = it.status === 'rented' ? t('rented') : t('available');
+  return `<div class="listing">
+    <h3>${esc(it.name)}</h3>
+    <div class="meta">${esc(catLabel(it.cat))} · ${esc(it.district)}, ${esc(it.state)}</div>
+    <div class="price">${rupees(it.price)} ${t('perDay')}${it.deposit ? ` · ${t('depositLbl')} ${rupees(it.deposit)}` : ''}</div>
+    <p style="margin:4px 0">${esc(it.desc)}</p>
+    <span class="${tag}">${label}</span>
+    ${controls}
+  </div>`;
+}
+function renderBrowse() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const cat = document.getElementById('cat-filter').value;
+  const st = document.getElementById('state-filter').value;
+  const list = items.filter(it =>
+    (!cat || it.cat === cat) && (!st || it.state === st) &&
+    (!q || it.name.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q) || it.district.toLowerCase().includes(q))
+  );
+  document.getElementById('browse-list').innerHTML = list.length
+    ? list.map(it => card(it, `<div class="actions"><a class="small" href="tel:${esc(it.contact)}">${t('contactOwner')}</a></div>`)).join('')
+    : `<div class="empty">${loading ? 'Loading listings...' : t('none')}</div>`;
+}
+async function addItem() {
+  const v = id => document.getElementById(id).value.trim();
+  const name = v('i-name'), price = parseInt(v('i-price'), 10), contact = v('i-contact');
+  if (!name || isNaN(price) || !contact) { alert(t('needFields')); return; }
+  if (!fdb || !myId) { alert('Connecting. Please check your internet and try again.'); return; }
+  const id = 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  try {
+    await fdb.collection('listings').doc(id).set({
+      name, cat: v('i-cat'), desc: v('i-desc') || '-', price,
+      deposit: parseInt(v('i-deposit'), 10) || 0,
+      state: v('i-state'), district: placeOf(), contact,
+      status: 'available', ownerId: myId, createdAt: Date.now()
+    });
+  } catch (e) { alert('Could not save the listing. Check your internet and try again.'); return; }
+  ['i-name','i-desc','i-price','i-deposit','i-contact','i-manual'].forEach(x => document.getElementById(x).value = '');
+  alert(t('listed'));
+}
+async function toggleStatus(id) {
+  const it = items.find(x => x.id === id);
+  if (!it || !fdb) return;
+  try {
+    await fdb.collection('listings').doc(id).update({ status: it.status === 'rented' ? 'available' : 'rented' });
+  } catch (e) { alert('Could not update. Check your internet and try again.'); }
+}
+async function removeItem(id) {
+  if (!confirm(t('confirmRemove')) || !fdb) return;
+  try { await fdb.collection('listings').doc(id).delete(); }
+  catch (e) { alert('Could not remove. Check your internet and try again.'); }
+}
+function renderMine() {
+  const mine = items.filter(it => it.ownerId && it.ownerId === myId);
+  document.getElementById('mine-list').innerHTML = mine.length
+    ? mine.map(it => card(it, `<div class="actions">
+        <button class="small" onclick="toggleStatus('${esc(it.id)}')">${it.status === 'rented' ? t('markAvailable') : t('markRented')}</button>
+        <button class="small danger" onclick="removeItem('${esc(it.id)}')">${t('remove')}</button></div>`)).join('')
+    : `<div class="empty">${t('noMine')}</div>`;
+}
+
+function startSync() {
+  fdb.collection('listings').onSnapshot(snap => {
+    loading = false;
+    items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderBrowse();
+    renderMine();
+  }, err => {
+    loading = false;
+    console.error('Listings sync stopped:', err);
+    renderBrowse();
+  });
+}
+
+setLang('en');
+(function startFirebase() {
+  if (firebaseConfig.apiKey.startsWith('PASTE')) {
+    loading = false; renderBrowse(); renderMine();
+    console.error('Firebase config not set yet.');
+    return;
+  }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    fdb = firebase.firestore();
+    firebase.auth().signInAnonymously().then(c => {
+      myId = c.user.uid;
+      startSync();
+      renderMine();
+    }).catch(e => {
+      loading = false; renderBrowse(); console.error('Sign-in failed:', e);
+    });
+  } catch (e) {
+    loading = false; renderBrowse(); console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
